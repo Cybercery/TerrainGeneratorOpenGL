@@ -29,7 +29,7 @@ const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
 
 // terrain
-const int SIZE = 200;
+const int SIZE = 400;
 const float NOISE_SCALE = 0.008f;
 const float HEIGHT_SCALE = 35.0f;
 
@@ -281,12 +281,8 @@ int main()
 
         shader.setVec3("viewPos", camera.Position);
 
-        shader.setVec3("lightColor",
-            1.0f,
-            1.0f,
-            1.0f
-        );
-
+        shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+        
         // transformations
         glm::mat4 model = glm::mat4(1.0f);
 

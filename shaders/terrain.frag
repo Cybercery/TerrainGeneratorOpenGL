@@ -22,13 +22,40 @@ void main()
     // slope factor
     float slope = 1.0 - norm.y;
 
-    vec3 terrainColor = vec3(0.12, 0.35, 0.12);
+
+    // normalize terrain height
+    float h = clamp(FragPos.y / 80.0 , 0.0, 1.0);
+
+    vec3 grass = vec3(34.0, 139.0, 34.0) / 255.0;
+    vec3 dirt  = vec3(120.0, 72.0, 48.0) / 255.0;
+    vec3 rock  = vec3(110.0, 110.0, 110.0) / 255.0;
+    vec3 snow  = vec3(1.0);
+
+    vec3 terrainColor = grass;
+
+    terrainColor = mix(
+        terrainColor,
+        dirt,
+        smoothstep(0.15, 0.35, h)
+    );
+
+    terrainColor = mix(
+        terrainColor,
+        rock,
+        smoothstep(0.45, 0.75, h)
+    );
+
+    terrainColor = mix(
+        terrainColor,
+        snow,
+        smoothstep(0.82, 0.97, h)
+    );
 
     // ambient
-    vec3 ambient = terrainColor * 0.15;
+    vec3 ambient = terrainColor * 0.5;
 
     // diffuse lighting
-    vec3 diffuse = terrainColor * diff * 1.4;
+    vec3 diffuse = terrainColor * diff;
 
     vec3 result = ambient + diffuse;
 
