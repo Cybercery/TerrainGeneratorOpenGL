@@ -52,6 +52,9 @@ float lastY = SCR_HEIGHT / 2.0f;
 
 bool firstMouse = true;
 
+// light position
+glm::vec3 lightPos(100.0f, 80.0f, 100.0f);
+
 float fbm(int x, int z)
 {
     float value = 0.0f;
@@ -138,9 +141,31 @@ int main()
         {
             float height = fbm(x, z);
 
+            // sample neighboring heights
+            float heightL = fbm(x - 1, z);
+            float heightR = fbm(x + 1, z);
+
+            float heightD = fbm(x, z - 1);
+            float heightU = fbm(x, z + 1);
+
+            // calculate normal
+            glm::vec3 normal;
+
+            normal.x = heightL - heightR;
+            normal.y = 2.0f;
+            normal.z = heightD - heightU;
+
+            normal = glm::normalize(normal);
+
+            // position
             vertices.push_back((float)x);
             vertices.push_back(height);
             vertices.push_back((float)z);
+
+            // normal
+            vertices.push_back(normal.x);
+            vertices.push_back(normal.y);
+            vertices.push_back(normal.z);
         }
     }
 
@@ -188,20 +213,32 @@ int main()
         GL_STATIC_DRAW
     );
 
-    // position attribute
+    // positions
     glVertexAttribPointer(
         0,
         3,
         GL_FLOAT,
         GL_FALSE,
-        3 * sizeof(float),
+        6 * sizeof(float),
         (void*)0
     );
 
     glEnableVertexAttribArray(0);
 
+    // normals
+    glVertexAttribPointer(
+        1,
+        3,
+        GL_FLOAT,
+        GL_FALSE,
+        6 * sizeof(float),
+        (void*)(3 * sizeof(float))
+    );
+
+    glEnableVertexAttribArray(1);
+
     // wireframe
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // render loop
     while (!glfwWindowShouldClose(window))
@@ -218,6 +255,16 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shader.use();
+
+        shader.setVec3("lightPos", lightPos);
+
+        shader.setVec3("viewPos", camera.Position);
+
+        shader.setVec3("lightColor",
+            1.0f,
+            1.0f,
+            1.0f
+        );
 
         // transformations
         glm::mat4 model = glm::mat4(1.0f);

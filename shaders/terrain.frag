@@ -2,17 +2,45 @@
 
 out vec4 FragColor;
 
-in float height;
+in vec3 FragPos;
+in vec3 Normal;
+
+uniform vec3 lightPos;
+uniform vec3 viewPos;
+uniform vec3 lightColor;
 
 void main()
 {
-    vec3 brown = vec3(0.45, 0.30, 0.15);
-    vec3 green = vec3(0.2, 0.5, 0.2);
-    vec3 gray = vec3(0.5, 0.5, 0.5);
+    // terrain base color
+    vec3 terrainColor = vec3(0.45, 0.36, 0.22);
 
-    vec3 color;
+    // ambient
+    float ambientStrength = 0.2;
+    vec3 ambient = ambientStrength * lightColor;
 
-    color = brown;
+    // diffuse
+    vec3 norm = normalize(Normal);
 
-    FragColor = vec4(color, 1.0);
+    vec3 lightDir = normalize(lightPos - FragPos);
+
+    float diff = max(dot(norm, lightDir), 0.0);
+
+    vec3 diffuse = diff * lightColor;
+
+    // specular
+    float specularStrength = 0.3;
+
+    vec3 viewDir = normalize(viewPos - FragPos);
+
+    vec3 reflectDir = reflect(-lightDir, norm);
+
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+
+    vec3 specular = specularStrength * spec * lightColor;
+
+    // final lighting
+    vec3 result =
+        (ambient + diffuse + specular) * terrainColor;
+
+    FragColor = vec4(result, 1.0);
 }
