@@ -12,65 +12,57 @@
 #include "stb_perlin.h"
 
 #include "shader.h"
+#include "camera.h"
 
+// callbacks
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void processInput(GLFWwindow* window);
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+
+// settings
 const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
 
+// terrain
 const int SIZE = 200;
 const float NOISE_SCALE = 0.05f;
 const float HEIGHT_SCALE = 10.0f;
 
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
-
+// noise settings
 int   OCTAVES = 6;
 float INITIAL_AMPLITUDE = 1.0f;
 float INITIAL_FREQUENCY = 0.5f;
 float PERSISTENCE = 0.5f;
 float LACUNARITY = 2.0f;
 
-glm::vec3 cameraPos = glm::vec3(100.0f, 40.0f, -50.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, -0.3f, 1.0f);
+// timing
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
 
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+// camera
+Camera camera(glm::vec3(100.0f, 40.0f, -50.0f));
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
+
+bool firstMouse = true;
+
+float fbm(int x, int z)
 {
-    glViewport(0, 0, width, height);
-}
-
-void processInput(GLFWwindow* window)
-{
-    float speed = 20.0f * deltaTime;
-
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        cameraPos += speed * cameraFront;
-
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        cameraPos -= speed * cameraFront;
-
-    glm::vec3 right = glm::normalize(glm::cross(cameraFront, cameraUp));
-
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        cameraPos -= right * speed;
-
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        cameraPos += right * speed;
-}
-
-float fbm(int x, int z) {
     float value = 0.0f;
     float amplitude = INITIAL_AMPLITUDE;
     float frequency = INITIAL_FREQUENCY;
 
-    for (int i = 0; i < OCTAVES; i++) {
+    for (int i = 0; i < OCTAVES; i++)
+    {
         value += stb_perlin_noise3(
             x * NOISE_SCALE * frequency,
             z * NOISE_SCALE * frequency,
-            0.0f, 0, 0, 0
+            0.0f,
+            0,
+            0,
+            0
         ) * amplitude;
 
         amplitude *= PERSISTENCE;
@@ -82,6 +74,7 @@ float fbm(int x, int z) {
 
 int main()
 {
+    // GLFW init
     glfwInit();
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -105,26 +98,33 @@ int main()
 
     glfwMakeContextCurrent(window);
 
+    // callbacks
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
+
+    // capture mouse
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    // GLAD
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
 
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
+    // depth testing
     glEnable(GL_DEPTH_TEST);
 
-    Shader shader("../../../shaders/terrain.vert", "../../../shaders/terrain.frag");
+    // shader
+    Shader shader(
+        "../../../shaders/terrain.vert",
+        "../../../shaders/terrain.frag"
+    );
 
-    int success;
-    char infoLog[512];
-    glGetProgramiv(shader.ID, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shader.ID, 512, NULL, infoLog);
-        std::cout << "Shader link error: " << infoLog << std::endl;
-    }
-
+    // terrain mesh
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
 
@@ -132,7 +132,7 @@ int main()
     {
         for (int x = 0; x < SIZE; x++)
         {
-            float height = fbm(x, z); 
+            float height = fbm(x, z);
 
             vertices.push_back((float)x);
             vertices.push_back(height);
@@ -159,6 +159,7 @@ int main()
         }
     }
 
+    // buffers
     unsigned int VAO, VBO, EBO;
 
     glGenVertexArrays(1, &VAO);
@@ -183,6 +184,7 @@ int main()
         GL_STATIC_DRAW
     );
 
+    // position attribute
     glVertexAttribPointer(
         0,
         3,
@@ -194,32 +196,32 @@ int main()
 
     glEnableVertexAttribArray(0);
 
+    // wireframe
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    
+
+    // render loop
     while (!glfwWindowShouldClose(window))
     {
+        // delta time
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
         processInput(window);
 
+        // render
         glClearColor(0.5f, 0.7f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shader.use();
 
+        // transformations
         glm::mat4 model = glm::mat4(1.0f);
 
-        glm::mat4 view = glm::lookAt(
-            cameraPos,
-            cameraPos + cameraFront,
-            cameraUp
-        );
+        glm::mat4 view = camera.GetViewMatrix();
 
         glm::mat4 projection = glm::perspective(
-            glm::radians(45.0f),
+            glm::radians(camera.Zoom),
             (float)SCR_WIDTH / (float)SCR_HEIGHT,
             0.1f,
             1000.0f
@@ -229,6 +231,7 @@ int main()
         shader.setMat4("view", view);
         shader.setMat4("projection", projection);
 
+        // draw terrain
         glBindVertexArray(VAO);
 
         glDrawElements(
@@ -249,4 +252,54 @@ int main()
     glfwTerminate();
 
     return 0;
+}
+
+// resize callback
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    glViewport(0, 0, width, height);
+}
+
+void processInput(GLFWwindow* window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.ProcessKeyboard(FORWARD, deltaTime);
+
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.ProcessKeyboard(BACKWARD, deltaTime);
+
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.ProcessKeyboard(LEFT, deltaTime);
+
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.ProcessKeyboard(RIGHT, deltaTime);
+}
+
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
+{
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+
+    lastX = xpos;
+    lastY = ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
