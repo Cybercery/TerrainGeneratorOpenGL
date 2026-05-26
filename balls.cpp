@@ -30,14 +30,15 @@ const unsigned int SCR_HEIGHT = 720;
 
 // terrain
 const int SIZE = 200;
-const float NOISE_SCALE = 0.05f;
-const float HEIGHT_SCALE = 10.0f;
+const float NOISE_SCALE = 0.008f;
+const float HEIGHT_SCALE = 35.0f;
 
-// noise settings
-int   OCTAVES = 6;
+int   OCTAVES = 8;
+
 float INITIAL_AMPLITUDE = 1.0f;
-float INITIAL_FREQUENCY = 0.5f;
-float PERSISTENCE = 0.5f;
+float INITIAL_FREQUENCY = 1.0f;
+
+float PERSISTENCE = 0.42f;
 float LACUNARITY = 2.0f;
 
 // timing
@@ -45,7 +46,7 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 // camera
-Camera camera(glm::vec3(100.0f, 40.0f, -50.0f));
+Camera camera(glm::vec3(100.0f, 100.0f, -50.0f));
 
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
@@ -53,24 +54,45 @@ float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
 // light position
-glm::vec3 lightPos(100.0f, 80.0f, 100.0f);
-
+glm::vec3 lightPos(300.0f, 120.0f, 100.0f);
 float fbm(int x, int z)
 {
     float value = 0.0f;
+
     float amplitude = INITIAL_AMPLITUDE;
     float frequency = INITIAL_FREQUENCY;
 
     for (int i = 0; i < OCTAVES; i++)
     {
-        value += stb_perlin_noise3(
-            x * NOISE_SCALE * frequency,
-            z * NOISE_SCALE * frequency,
+        float nx = x * NOISE_SCALE * frequency;
+        float nz = z * NOISE_SCALE * frequency;
+
+        // domain warp
+        float warp = stb_perlin_noise3(
+            nx * 0.3f,
+            nz * 0.3f,
+            100.0f,
+            0, 0, 0
+        );
+
+        nx += warp * 2.0f;
+        nz += warp * 2.0f;
+
+        // sample warped coordinates
+        float noise = stb_perlin_noise3(
+            nx,
+            nz,
             0.0f,
-            0,
-            0,
-            0
-        ) * amplitude;
+            0, 0, 0
+        );
+
+        // ridged noise
+        noise = 1.0f - abs(noise);
+
+        // sharpen ridges
+        noise *= noise;
+
+        value += noise * amplitude;
 
         amplitude *= PERSISTENCE;
         frequency *= LACUNARITY;
@@ -78,7 +100,6 @@ float fbm(int x, int z)
 
     return value * HEIGHT_SCALE;
 }
-
 int main()
 {
     // GLFW init
@@ -152,7 +173,7 @@ int main()
             glm::vec3 normal;
 
             normal.x = heightL - heightR;
-            normal.y = 2.0f;
+            normal.y = 1.0f;
             normal.z = heightD - heightU;
 
             normal = glm::normalize(normal);

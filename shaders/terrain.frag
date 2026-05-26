@@ -11,36 +11,26 @@ uniform vec3 lightColor;
 
 void main()
 {
-    // terrain base color
-    vec3 terrainColor = vec3(0.45, 0.36, 0.22);
-
-    // ambient
-    float ambientStrength = 0.2;
-    vec3 ambient = ambientStrength * lightColor;
-
-    // diffuse
     vec3 norm = normalize(Normal);
 
+    // directional-ish light
     vec3 lightDir = normalize(lightPos - FragPos);
 
+    // diffuse
     float diff = max(dot(norm, lightDir), 0.0);
 
-    vec3 diffuse = diff * lightColor;
+    // slope factor
+    float slope = 1.0 - norm.y;
 
-    // specular
-    float specularStrength = 0.3;
+    vec3 terrainColor = vec3(0.12, 0.35, 0.12);
 
-    vec3 viewDir = normalize(viewPos - FragPos);
+    // ambient
+    vec3 ambient = terrainColor * 0.15;
 
-    vec3 reflectDir = reflect(-lightDir, norm);
+    // diffuse lighting
+    vec3 diffuse = terrainColor * diff * 1.4;
 
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-
-    vec3 specular = specularStrength * spec * lightColor;
-
-    // final lighting
-    vec3 result =
-        (ambient + diffuse + specular) * terrainColor;
+    vec3 result = ambient + diffuse;
 
     FragColor = vec4(result, 1.0);
 }
