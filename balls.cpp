@@ -29,11 +29,11 @@ const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
 
 // terrain
-const int SIZE = 400;
+const int SIZE = 512;
 const float NOISE_SCALE = 0.008f;
 const float HEIGHT_SCALE = 35.0f;
 
-int   OCTAVES = 8;
+int   OCTAVES = 12;
 
 float INITIAL_AMPLITUDE = 1.0f;
 float INITIAL_FREQUENCY = 1.0f;
@@ -64,24 +64,32 @@ float fbm(int x, int z)
 
     for (int i = 0; i < OCTAVES; i++)
     {
+        // scaled coordinates
         float nx = x * NOISE_SCALE * frequency;
         float nz = z * NOISE_SCALE * frequency;
 
+        // rotate domain
+        float rx = nx * 0.8f - nz * 0.6f;
+        float rz = nx * 0.6f + nz * 0.8f;
+
         // domain warp
         float warp = stb_perlin_noise3(
-            nx * 0.3f,
-            nz * 0.3f,
+            rx * 0.3f,
+            rz * 0.3f,
             100.0f,
             0, 0, 0
         );
 
-        nx += warp * 2.0f;
-        nz += warp * 2.0f;
+        float warpX = stb_perlin_noise3(rx * 0.3f, rz * 0.3f, 100.0f, 0, 0, 0);
+        float warpZ = stb_perlin_noise3(rx * 0.3f, rz * 0.3f, 200.0f, 0, 0, 0);
+
+        rx += warpX * 2.0f;
+        rz += warpZ * 2.0f;
 
         // sample warped coordinates
         float noise = stb_perlin_noise3(
-            nx,
-            nz,
+            rx,
+            rz,
             0.0f,
             0, 0, 0
         );
@@ -98,7 +106,24 @@ float fbm(int x, int z)
         frequency *= LACUNARITY;
     }
 
-    return value * HEIGHT_SCALE;
+    // CONTINENT MASK
+    float continent =
+        stb_perlin_noise3(
+            x * 0.003f,
+            z * 0.003f,
+            50.0f,
+            0, 0, 0
+        );
+
+    continent = continent * 0.5f + 0.5f;
+
+    // softer shaping
+    continent = pow(continent, 1.2f);
+
+    // keep minimum terrain height
+    continent = 0.35f + continent * 0.65f;
+
+    return value * HEIGHT_SCALE * (0.3f + continent);
 }
 int main()
 {
