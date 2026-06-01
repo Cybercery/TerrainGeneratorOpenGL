@@ -30,7 +30,7 @@ const unsigned int SCR_HEIGHT = 720;
 
 // terrain
 const int SIZE = 512;
-const float NOISE_SCALE = 0.008f;
+const float NOISE_SCALE = 0.010f;
 const float HEIGHT_SCALE = 35.0f;
 
 int   OCTAVES = 12;
@@ -118,7 +118,7 @@ float fbm(int x, int z)
     continent = continent * 0.5f + 0.5f;
 
     // softer shaping
-    continent = pow(continent, 1.2f);
+    continent = pow(continent, 1.0f);
 
     // keep minimum terrain height
     continent = 0.35f + continent * 0.65f;
@@ -150,6 +150,7 @@ int main()
     }
 
     glfwMakeContextCurrent(window);
+    // glfwSwapInterval(0); // disable vsync
 
     // callbacks
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);

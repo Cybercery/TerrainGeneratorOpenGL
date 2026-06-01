@@ -28,6 +28,7 @@ void main()
 
     vec3 grass = vec3(34.0, 139.0, 34.0) / 255.0;
     vec3 dirt  = vec3(120.0, 72.0, 48.0) / 255.0;
+   // vec3 dirt = vec3(0.0, 100.0, 0.0) / 255.0; // dark green test
     vec3 rock  = vec3(110.0, 110.0, 110.0) / 255.0;
     vec3 snow  = vec3(1.0);
 
@@ -36,19 +37,19 @@ void main()
     terrainColor = mix(
         terrainColor,
         dirt,
-        smoothstep(0.15, 0.35, h)
+        smoothstep(0.15, 0.65, h)
     );
 
     terrainColor = mix(
         terrainColor,
         rock,
-        smoothstep(0.45, 0.75, h)
+        smoothstep(0.65, 0.75, h)
     );
 
     terrainColor = mix(
         terrainColor,
         snow,
-        smoothstep(0.82, 0.97, h)
+        smoothstep(0.75, 1.0, h)
     );
 
     // ambient
